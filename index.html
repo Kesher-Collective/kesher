@@ -532,10 +532,27 @@ async function signOut() { await db.auth.signOut(); location.reload(); }
 // ── BOOT ──
 async function boot() {
   setLoading('Loading Kesher...');
-  const { data: { session } } = await db.auth.getSession();
-  if (!session) { setLoading(); hide('loading-overlay'); show('auth-screen'); return; }
-  currentUser = session.user;
-  await loadAppData();
+  try {
+    // Add timeout to auth session check
+    const sessionResult = await withTimeout(db.auth.getSession(), 8000);
+    const session = sessionResult.data?.session;
+    if (!session) {
+      setLoading();
+      hide('loading-overlay');
+      show('auth-screen');
+      return;
+    }
+    currentUser = session.user;
+    await loadAppData();
+  } catch(err) {
+    console.error('Boot error:', err.message);
+    // Clear stale session and show auth screen
+    setLoading();
+    hide('loading-overlay');
+    try { await db.auth.signOut(); } catch(e) {}
+    show('auth-screen');
+    showAuthInfo('Session expired — please sign in again.');
+  }
 }
 
 let dataCache = null;
@@ -581,6 +598,12 @@ async function refreshData(force = false) {
 async function loadAppData() {
   setLoading('Connecting to database...');
   try {
+    // Refresh session first to prevent token expiry issues
+    try {
+      await withTimeout(db.auth.refreshSession(), 5000);
+    } catch(e) {
+      console.warn('Session refresh failed, continuing:', e.message);
+    }
     // Load chapters first for activeChapter
     setLoading('Loading chapters...');
     const { data: chs } = await withTimeout(db.from('chapters').select('*').order('name'), 8000);
@@ -1118,16 +1141,70 @@ function renderBlog() {
   if (!chPosts.length) { list.innerHTML = '<div class="empty">No minutes posted yet.</div>'; return; }
   list.innerHTML = chPosts.map(p => {
     const preview = p.body?.length > 200 && !p.expanded ? p.body.slice(0, 200) + '...' : p.body;
-    return `<div class="blog-card"><div class="blog-meta"><span class="blog-date">${p.post_date?.slice(0,10)||''}</span><span class="blog-ch">${chName(p.chapter_id)}</span>${isAdmin()?`<button class="btn btn-sm btn-d" style="margin-left:auto" onclick="deletePost('${p.id}')">Delete</button>`:''}</div><div class="blog-title">${p.title||''}</div><div class="blog-body">${preview||''}</div>${(p.body?.length||0)>200?`<div class="blog-expand" onclick="togglePost('${p.id}')">${p.expanded?'Show less':'Read more'}</div>`:''}</div>`;
+    return `<div class="blog-card">
+      <div class="blog-meta">
+        <span class="blog-date">${p.post_date?.slice(0,10)||''}</span>
+        <span class="blog-ch">${chName(p.chapter_id)}</span>
+        ${isAdmin()?`
+          <div style="margin-left:auto;display:flex;gap:5px">
+            <button class="btn btn-sm" onclick="editPost('${p.id}')">Edit</button>
+            <button class="btn btn-sm btn-d" onclick="deletePost('${p.id}')">Delete</button>
+          </div>`:''
+        }
+      </div>
+      <div class="blog-title">${p.title||''}</div>
+      <div class="blog-body">${preview||''}</div>
+      ${(p.body?.length||0)>200?`<div class="blog-expand" onclick="togglePost('${p.id}')">${p.expanded?'Show less':'Read more'}</div>`:''}
+    </div>`;
   }).join('');
 }
 
 function togglePost(id) { const p = posts.find(x => x.id == id); if (p) p.expanded = !p.expanded; renderBlog(); }
 
 async function deletePost(id) {
-  if (!confirm('Delete post?')) return;
-  await db.from('posts').delete().eq('id', id);
+  if (!confirm('Delete this post?')) return;
+  const { error } = await db.from('posts').delete().eq('id', id);
+  if (error) { alert('Could not delete: ' + error.message); return; }
   posts = posts.filter(x => x.id != id); renderBlog();
+}
+
+function editPost(id) {
+  const p = posts.find(x => x.id == id); if (!p) return;
+  const chOpts = chapters.map(c => `<option value="${c.id}"${c.id===p.chapter_id?' selected':''}>${c.name}</option>`).join('');
+  openModal('Edit meeting minutes', `
+    <div class="frow">
+      <div class="fg"><label class="fl">Date</label><input class="fi" type="date" id="ep-date" value="${p.post_date||''}"></div>
+      <div class="fg"><label class="fl">Chapter</label><select class="fi" id="ep-chapter">${chOpts}</select></div>
+    </div>
+    <div class="fg"><label class="fl">Title</label><input class="fi" type="text" id="ep-title" value="${p.title||''}"></div>
+    <div class="fg"><label class="fl">Minutes</label><textarea class="fi" id="ep-body" style="min-height:160px">${p.body||''}</textarea></div>
+    <button class="btn btn-t" style="width:100%;margin-top:8px" onclick="saveEditPost('${p.id}')">Save changes</button>
+  `);
+}
+
+async function saveEditPost(id) {
+  const title = document.getElementById('ep-title').value.trim();
+  const body = document.getElementById('ep-body').value.trim();
+  if (!title || !body) { alert('Title and content required.'); return; }
+  const updates = {
+    title,
+    body,
+    post_date: document.getElementById('ep-date').value,
+    chapter_id: document.getElementById('ep-chapter').value
+  };
+  const btn = document.querySelector('#modal-body button.btn-t');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+  try {
+    const { error } = await withTimeout(db.from('posts').update(updates).eq('id', id), 8000);
+    if (error) throw new Error(error.message);
+    const idx = posts.findIndex(x => x.id == id);
+    if (idx > -1) posts[idx] = { ...posts[idx], ...updates };
+    closeModal();
+    renderBlog();
+  } catch(err) {
+    alert('Could not save: ' + err.message);
+    if (btn) { btn.disabled = false; btn.textContent = 'Save changes'; }
+  }
 }
 
 function initPostForm() {
@@ -1139,10 +1216,25 @@ function initPostForm() {
 async function submitPost() {
   const title = document.getElementById('post-title').value.trim();
   const body = document.getElementById('post-body').value.trim();
+  const chapterId = document.getElementById('post-chapter').value;
+  const postDate = document.getElementById('post-date').value;
   if (!title || !body) { alert('Title and content required.'); return; }
-  const { data } = await db.from('posts').insert({ chapter_id: document.getElementById('post-chapter').value, post_date: document.getElementById('post-date').value, title, body, author_id: currentProfile?.id }).select().single();
-  if (data) { posts.unshift({ ...data, expanded: false }); }
-  document.getElementById('new-post-form').classList.add('hidden'); renderBlog();
+  const btn = document.querySelector('#new-post-form button.btn-p');
+  if (btn) { btn.disabled = true; btn.textContent = 'Publishing...'; }
+  try {
+    const { data, error } = await withTimeout(
+      db.from('posts').insert({ chapter_id: chapterId, post_date: postDate, title, body, author_id: currentProfile?.id }).select().single(),
+      8000
+    );
+    if (error) throw new Error(error.message);
+    if (data) { posts.unshift({ ...data, expanded: false }); }
+    document.getElementById('new-post-form').classList.add('hidden');
+    renderBlog();
+  } catch(err) {
+    alert('Could not save post: ' + err.message + '\nPlease try again.');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Publish'; }
+  }
 }
 
 // ── PROFILE ──
