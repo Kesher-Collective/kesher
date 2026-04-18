@@ -392,7 +392,11 @@ textarea.fi{resize:vertical;min-height:70px}
       </div>
       <div class="asec"><div class="sec-t">Meeting banner <button class="btn btn-sm btn-p" onclick="openBannerModal()">Edit</button></div><div id="admin-banner-preview"></div></div>
       <div class="asec"><div class="sec-t">Sponsor spotlight <button class="btn btn-sm btn-g" onclick="openSponsorModal()">Set sponsor</button></div><div id="sp-admin-info"></div></div>
-      <div class="asec"><div class="sec-t">Invite links</div><div id="invite-links"></div></div>
+      <div class="asec">
+      <div class="sec-t">Invite members <button class="btn btn-sm btn-t" onclick="openInviteModal()">+ Send invite</button></div>
+      <div id="invite-links"></div>
+      <div style="margin-top:10px;font-size:11px;color:var(--k-text3)">Or share a direct invite link — members register themselves using the code below.</div>
+    </div>
       <div class="asec"><div class="sec-t">Chapters <button class="btn btn-sm btn-p" onclick="addChapter()">+ Add</button></div><div id="chapter-list"></div></div>
       <div class="asec"><div class="sec-t">Admin team <button class="btn btn-sm btn-p" onclick="openGrantModal()">Grant admin</button></div><div id="admin-list"></div></div>
       <div class="asec"><div class="sec-t">Pending approvals <span id="pending-count-badge" style="background:var(--k-teal);color:white;font-size:10px;padding:1px 7px;border-radius:20px;font-weight:600;margin-left:6px"></span></div><div id="pending-list"></div></div>
@@ -1316,7 +1320,7 @@ async function saveProfile() {
 async function renderAdmin() {
   // Refresh pending list every time admin page opens
   if (isAdmin()) {
-    const { data: pend } = await db.from('members').select('*').eq('role','pending');
+    const { data: pend } = await db.from('members').select('*').in('role',['pending','invited']);
     pendingMembers = pend || [];
   }
   document.getElementById('st-members').textContent = members.length;
@@ -1346,12 +1350,12 @@ async function renderAdmin() {
 
   document.getElementById('pending-list').innerHTML = pendingMembers.length
     ? pendingMembers.map(p => `
-      <div class="li" style="flex-wrap:wrap;gap:8px;border-left:3px solid var(--k-gold);background:var(--k-gold-bg)">
+      <div class="li" style="flex-wrap:wrap;gap:8px;border-left:3px solid ${p.role==='invited'?'var(--k-teal)':'var(--k-gold)'};background:${p.role==='invited'?'var(--k-teal-light)':'var(--k-gold-bg)'}">
         <div class="avatar av-member" style="width:38px;height:38px;font-size:12px">${ini(p.name||'?')}</div>
         <div class="li-info" style="min-width:180px">
-          <div class="li-name" style="font-size:13px">${p.name||'No name yet'}</div>
+          <div class="li-name" style="font-size:13px;display:flex;align-items:center;gap:6px">${p.name||'No name yet'} <span style="font-size:9px;padding:1px 6px;border-radius:20px;font-weight:600;background:${p.role==='invited'?'var(--k-teal)':'var(--k-gold)'};color:white">${p.role==='invited'?'Invited':'Pending'}</span></div>
           <div class="li-meta">${p.email}</div>
-          <div class="li-meta">${p.industry||'Industry not set'} · Applied ${p.joined_at?.slice(0,10)||'recently'}</div>
+          <div class="li-meta">${p.industry||'Profile not yet complete'} · ${p.role==='invited'?'Invited':'Applied'} ${p.joined_at?.slice(0,10)||'recently'}</div>
           <div class="li-meta" style="margin-top:3px">
             Chapters: 
             ${chapters.map(c => `<label style="margin-right:8px;font-size:11px;cursor:pointer">
@@ -1367,7 +1371,29 @@ async function renderAdmin() {
       </div>`).join('')
     : '<div class="empty" style="background:var(--k-sage-bg);border-radius:8px;color:var(--k-sage)">No pending requests — all members approved.</div>';
 
-  document.getElementById('all-member-list').innerHTML = members.map(m => { const cp = profileCompletion(m); const dj = daysSince(m.joined_at); return `<div class="li"><div class="avatar ${m.role==='super'?'av-super':m.role?.startsWith('chapter-')?'av-admin':'av-member'}" style="width:30px;height:30px;font-size:10px">${ini(m.name)}</div><div class="li-info"><div class="li-name">${m.name}</div><div class="li-meta">${m.industry||''} · ${(m.chapters||[]).map(chName).join(', ')} · ${cp.pct}% profile${dj<=30?' · Day '+dj:''}</div></div>${isSuperAdmin()?`<button class="btn btn-sm btn-d" onclick="removeMember('${m.id}')">Remove</button>`:''}</div>`; }).join('');
+  document.getElementById('all-member-list').innerHTML = members.map(m => {
+    const cp = profileCompletion(m);
+    const dj = daysSince(m.joined_at);
+    const chapterBadges = (m.chapters||[]).map(c => `<span class="badge badge-ch" style="font-size:9px">${chName(c)}</span>`).join(' ');
+    return `<div class="li" style="flex-wrap:wrap;gap:6px">
+      <div class="avatar ${m.role==='super'?'av-super':m.role?.startsWith('chapter-')?'av-admin':'av-member'}" style="width:32px;height:32px;font-size:11px">${ini(m.name)}</div>
+      <div class="li-info">
+        <div class="li-name">${m.name}</div>
+        <div class="li-meta" style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:2px">
+          <span>${m.industry||'No industry'}</span>
+          <span>·</span>
+          <span>${(m.chapters||[]).length ? chapterBadges : '<span style=color:var(--k-red);font-size:11px>No chapter</span>'}</span>
+          <span>·</span>
+          <span>${cp.pct}% complete</span>
+          ${dj<=30?`<span>· Day ${dj}</span>`:''}
+        </div>
+      </div>
+      <div style="display:flex;gap:5px;margin-left:auto;flex-shrink:0">
+        <button class="btn btn-sm" onclick="editMemberChapters('${m.id}')">Chapters</button>
+        ${isSuperAdmin()?`<button class="btn btn-sm btn-d" onclick="removeMember('${m.id}')">Remove</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 async function saveSetting(key, value) {
@@ -1511,11 +1537,153 @@ async function rejectMember(id) {
   renderAdmin();
 }
 
+function openInviteModal() {
+  const chOpts = chapters.map(c => `
+    <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:7px;border:1px solid var(--k-border);cursor:pointer;margin-bottom:6px;background:var(--k-warm)">
+      <input type="checkbox" id="inv-ch-${c.id}" style="width:16px;height:16px;accent-color:var(--k-teal)">
+      <span style="font-size:13px;color:var(--k-text);font-weight:500">${c.name}</span>
+    </label>
+  `).join('');
+  openModal('Invite a new member', `
+    <div class="fg"><label class="fl">Full name</label><input class="fi" type="text" id="inv-name" placeholder="Jane Smith"></div>
+    <div class="fg"><label class="fl">Email address <span class="req">*</span></label><input class="fi" type="email" id="inv-email" placeholder="jane@company.com"></div>
+    <div class="fg">
+      <label class="fl">Chapter(s) <span class="req">*</span></label>
+      ${chOpts}
+    </div>
+    <div id="inv-result" style="display:none;padding:10px;border-radius:7px;font-size:12px;margin-bottom:10px"></div>
+    <button class="btn btn-t" style="width:100%;padding:9px" onclick="sendInvite()">Send invitation email</button>
+    <div style="margin-top:10px;padding-top:10px;border-top:0.5px solid var(--k-border)">
+      <div style="font-size:11px;color:var(--k-text3);margin-bottom:8px">Or copy a chapter invite link to share manually:</div>
+      ${chapters.map(c => {
+        const code = c.id === 'wi' ? 'WI2026' : c.id === 'city' ? 'CITY2026' : c.id.toUpperCase() + '2026';
+        const link = window.location.origin + window.location.pathname + '?invite=' + code;
+        return `<div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">
+          <span class="badge badge-ch" style="flex-shrink:0">${c.name}</span>
+          <span style="font-size:10px;color:var(--k-text2);font-family:monospace;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${link}</span>
+          <button class="btn btn-sm" onclick="navigator.clipboard?.writeText('${link}');this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',2000)">Copy</button>
+        </div>`;
+      }).join('')}
+    </div>
+  `);
+}
+
+async function sendInvite() {
+  const email = document.getElementById('inv-email').value.trim();
+  const name = document.getElementById('inv-name').value.trim();
+  const selectedChapters = chapters.filter(c => document.getElementById('inv-ch-' + c.id)?.checked).map(c => c.id);
+  const resultDiv = document.getElementById('inv-result');
+
+  if (!email) {
+    resultDiv.style.display = 'block';
+    resultDiv.style.background = 'var(--k-red-bg)';
+    resultDiv.style.color = 'var(--k-red)';
+    resultDiv.textContent = 'Please enter an email address.';
+    return;
+  }
+  if (!selectedChapters.length) {
+    resultDiv.style.display = 'block';
+    resultDiv.style.background = 'var(--k-red-bg)';
+    resultDiv.style.color = 'var(--k-red)';
+    resultDiv.textContent = 'Please select at least one chapter.';
+    return;
+  }
+
+  const btn = document.querySelector('#modal-body .btn-t');
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+
+  // Determine invite code from chapter selection
+  const inviteCode = selectedChapters.includes('wi') && selectedChapters.includes('city')
+    ? 'KESHER2026'
+    : selectedChapters.includes('wi') ? 'WI2026' : 'CITY2026';
+
+  const redirectUrl = window.location.origin + window.location.pathname;
+
+  try {
+    // Use Supabase admin invite - creates user and sends email
+    const { data, error } = await db.auth.admin?.inviteUserByEmail
+      ? db.auth.admin.inviteUserByEmail(email, {
+          data: { name, invite_code: inviteCode, chapters: selectedChapters },
+          redirectTo: redirectUrl
+        })
+      : { error: { message: 'Admin invite not available on this plan' } };
+
+    if (error) {
+      // Fallback: create a pre-registered pending slot + show copy link
+      // Insert a placeholder pending member so admin can track who was invited
+      await db.from('members').upsert({
+        email,
+        name: name || '',
+        chapters: selectedChapters,
+        role: 'invited',
+        tags: [],
+        joined_at: new Date().toISOString().slice(0,10)
+      }, { onConflict: 'email' });
+
+      const link = redirectUrl + '?invite=' + inviteCode;
+      resultDiv.style.display = 'block';
+      resultDiv.style.background = 'var(--k-gold-bg)';
+      resultDiv.style.color = '#7a5200';
+      resultDiv.innerHTML = `Could not send email automatically (requires Supabase Pro).<br><br>
+        <strong>Share this personal invite link with ${name||email}:</strong><br>
+        <div style="display:flex;gap:6px;margin-top:6px;align-items:center">
+          <span style="font-size:10px;font-family:monospace;flex:1;word-break:break-all;color:var(--k-navy)">${link}</span>
+          <button class="btn btn-sm btn-p" onclick="navigator.clipboard?.writeText('${link}');this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',2000)" style="flex-shrink:0">Copy</button>
+        </div>
+        <div style="margin-top:6px;font-size:11px">They'll register with code <strong>${inviteCode}</strong> and be auto-assigned to ${selectedChapters.map(chName).join(' + ')}.</div>`;
+    } else {
+      resultDiv.style.display = 'block';
+      resultDiv.style.background = 'var(--k-sage-bg)';
+      resultDiv.style.color = 'var(--k-sage)';
+      resultDiv.textContent = 'Invitation sent to ' + email + '! They will receive an email with a link to join.';
+    }
+  } catch(err) {
+    const link = redirectUrl + '?invite=' + inviteCode;
+    resultDiv.style.display = 'block';
+    resultDiv.style.background = 'var(--k-gold-bg)';
+    resultDiv.style.color = '#7a5200';
+    resultDiv.innerHTML = `Share this invite link with ${name||email}:<br>
+      <div style="display:flex;gap:6px;margin-top:6px;align-items:center">
+        <span style="font-size:10px;font-family:monospace;flex:1;word-break:break-all">${link}</span>
+        <button class="btn btn-sm btn-p" onclick="navigator.clipboard?.writeText('${link}');this.textContent='Copied!'" style="flex-shrink:0">Copy</button>
+      </div>`;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Send invitation email'; }
+  }
+}
+
 async function removeMember(id) {
   if (!confirm('Remove this member from the directory?')) return;
   await db.from('members').update({ role: 'removed' }).eq('id', id);
   members = members.filter(x => x.id !== id);
   renderAdmin(); renderDir();
+}
+
+function editMemberChapters(id) {
+  const m = members.find(x => x.id === id); if (!m) return;
+  const checkboxes = chapters.map(c => `
+    <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:7px;border:1px solid var(--k-border);cursor:pointer;margin-bottom:6px;background:var(--k-warm)">
+      <input type="checkbox" id="mch-${m.id}-${c.id}" ${(m.chapters||[]).includes(c.id)?'checked':''} style="width:16px;height:16px;accent-color:var(--k-teal)">
+      <span style="font-size:13px;color:var(--k-text);font-weight:500">${c.name}</span>
+    </label>
+  `).join('');
+  openModal('Edit chapters — ' + m.name, `
+    <p style="font-size:12px;color:var(--k-text2);margin-bottom:14px">Select which chapters this member belongs to:</p>
+    ${checkboxes}
+    <button class="btn btn-t" style="width:100%;margin-top:8px" onclick="saveMemberChapters('${m.id}')">Save chapters</button>
+  `);
+}
+
+async function saveMemberChapters(id) {
+  const m = members.find(x => x.id === id); if (!m) return;
+  const selected = chapters.filter(c => document.getElementById('mch-' + id + '-' + c.id)?.checked).map(c => c.id);
+  if (!selected.length) { alert('Please select at least one chapter.'); return; }
+  const { error } = await db.from('members').update({ chapters: selected }).eq('id', id);
+  if (error) { alert('Could not save: ' + error.message); return; }
+  m.chapters = selected;
+  closeModal();
+  renderAdmin();
+  renderDir();
 }
 
 function exportDir() {
