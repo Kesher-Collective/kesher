@@ -17,7 +17,7 @@
   --k-border:#E2DED8;--k-border2:#CCC8C0;
   --k-red:#B54040;--k-red-bg:#FEF2F2;
 }
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--k-page);color:var(--k-text);min-height:100vh}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--k-page);color:var(--k-text);min-height:100vh;font-size:14px}
 .hidden{display:none!important}
 /* ── AUTH SCREEN ── */
 .auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--k-page);padding:20px}
@@ -41,9 +41,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .logo-ks{font-size:8px;color:rgba(255,255,255,.6);letter-spacing:2px;margin-top:1px}
 .hdiv{width:1px;height:26px;background:rgba(255,255,255,.25)}
 .vbc{color:rgba(255,255,255,.85);font-size:12px}
-.fcja-badge{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.1);border-radius:5px;padding:4px 9px;border:0.5px solid rgba(255,255,255,.2)}
-.fcja-t{font-size:8px;color:rgba(255,255,255,.65)}
-.fcja-n{font-size:11px;color:var(--k-teal);font-weight:600}
+.fcja-badge{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.1);border-radius:6px;padding:5px 11px;border:0.5px solid rgba(255,255,255,.25);margin-left:8px}
+.fcja-t{font-size:9px;color:rgba(255,255,255,.7);letter-spacing:.3px}
+.fcja-n{font-size:12px;color:var(--k-teal);font-weight:600;letter-spacing:.2px}
 .hdr-right{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .upill{background:rgba(255,255,255,.12);color:rgba(255,255,255,.9);font-size:11px;padding:3px 8px;border-radius:20px}
 .bhdr{padding:4px 9px;border-radius:5px;border:0.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.08);color:rgba(255,255,255,.9);cursor:pointer;font-size:11px}
@@ -135,7 +135,7 @@ textarea.fi{resize:vertical;min-height:70px}
 .av-member{background:#EEEDF0;color:var(--k-slate);border:2px solid var(--k-border2)}
 .admin-dot{position:absolute;bottom:-1px;right:-1px;width:12px;height:12px;border-radius:50%;border:2px solid var(--k-card)}
 .dot-super{background:var(--k-gold)}.dot-admin{background:var(--k-teal)}
-.card-name{font-size:13px;font-weight:600;color:var(--k-text)}
+.card-name{font-size:14px;font-weight:600;color:var(--k-text)}
 .card-sub{font-size:11px;color:var(--k-text2)}
 .badge-row{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px}
 .badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:9px;font-weight:600;letter-spacing:.3px}
@@ -143,9 +143,9 @@ textarea.fi{resize:vertical;min-height:70px}
 .badge-admin{background:var(--k-teal-light);color:#1a6b75;border:0.5px solid #9FD8DE}
 .badge-ind{background:#EEEDF8;color:var(--k-slate);border:0.5px solid #C8CCE8}
 .badge-ch{background:var(--k-sage-bg);color:var(--k-sage);border:0.5px solid #9FC8AC}
-.pitch{font-size:11px;color:var(--k-text2);line-height:1.45;margin-bottom:8px;font-style:italic}
+.pitch{font-size:12px;color:var(--k-text2);line-height:1.5;margin-bottom:8px;font-style:italic}
 .tags-row{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px}
-.tag{display:inline-flex;padding:2px 6px;border-radius:20px;font-size:9px;font-weight:500;background:var(--k-teal-light);color:#1a6b75;border:0.5px solid #9FD8DE}
+.tag{display:inline-flex;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:500;background:var(--k-teal-light);color:#1a6b75;border:0.5px solid #9FD8DE}
 .card-actions{display:flex;gap:4px;flex-wrap:wrap}
 .clink{display:inline-flex;align-items:center;padding:3px 8px;border-radius:5px;font-size:11px;text-decoration:none;font-weight:500;border:1px solid var(--k-border);color:var(--k-text2);background:var(--k-warm);transition:all .12s;cursor:pointer}
 .clink:hover{border-color:var(--k-teal);color:var(--k-teal)}
@@ -371,7 +371,7 @@ textarea.fi{resize:vertical;min-height:70px}
         <div class="fg"><label class="fl">Website</label><input class="fi" type="url" id="edit-website"></div>
         <div class="fg"><label class="fl">One-sentence pitch</label><input class="fi" type="text" id="edit-pitch"></div>
         <div class="fg"><label class="fl">Full description</label><textarea class="fi" id="edit-desc"></textarea></div>
-        <div class="fg"><label class="fl">Tags (up to 5)</label><div class="tag-iw"><input class="fi" type="text" id="edit-tag-input" placeholder="e.g. Tax planning" onkeydown="if(event.key==='Enter'){event.preventDefault();addTag()}"><button class="btn btn-sm" onclick="addTag()">Add</button></div><div class="tags-pv" id="edit-tags-pv"></div></div>
+        <div class="fg"><label class="fl">Tags <span style="color:var(--k-text3);font-weight:400">(optional, up to 5)</span></label><div class="tag-iw"><input class="fi" type="text" id="edit-tag-input" placeholder="e.g. Tax planning" onkeydown="if(event.key==='Enter'){event.preventDefault();addTag()}"><button class="btn btn-sm" onclick="addTag()">Add</button></div><div class="tags-pv" id="edit-tags-pv"></div></div>
         <div class="fg"><label class="fl">Profile photo</label>
           <div class="upload-area" onclick="document.getElementById('photo-file').click()">
             <div id="photo-preview" style="margin-bottom:4px;font-size:11px;color:var(--k-text2)">Click to upload a photo</div>
@@ -441,7 +441,10 @@ let selectedPhotoFile = null;
 const ini = n => n ? n.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() : '?';
 const td = () => new Date().toISOString().slice(0,10);
 const chName = id => chapters.find(c => c.id === id)?.name || id;
-const isAdmin = () => currentProfile?.role === 'super' || currentProfile?.role === 'chapter-' + activeChapter;
+const isAdmin = () => {
+  const r = currentProfile?.role;
+  return r === 'super' || r === 'chapter-' + activeChapter || r?.startsWith('chapter-');
+};
 const isSuperAdmin = () => currentProfile?.role === 'super';
 const daysSince = d => d ? Math.floor((new Date() - new Date(d)) / 86400000) : 999;
 const show = id => document.getElementById(id)?.classList.remove('hidden');
@@ -583,6 +586,11 @@ async function loadAppData() {
         auth_id: currentUser.id,
         email: currentUser.email,
         name: meta.name || '',
+        phone: '',
+        industry: '',
+        pitch: '',
+        description: '',
+        website: '',
         chapters: chapterIds,
         role: 'pending',
         tags: [],
@@ -601,11 +609,13 @@ async function loadAppData() {
     setLoading();
     hide('auth-screen'); hide('pending-screen');
     show('main-app');
+    // Ensure role is read from DB, not cache
+    console.log('Loaded profile role:', currentProfile?.role, 'chapters:', currentProfile?.chapters);
     updateBadge();
     renderChBar();
     renderNav();
     // Small delay to ensure DOM is ready before rendering directory
-    setTimeout(() => showPage('directory'), 50);
+    setTimeout(() => showPage('directory'), 80);
   } catch (err) {
     console.error(err);
     setLoading();
@@ -651,7 +661,10 @@ function renderNav() {
   h += `<button class="nav-tab" onclick="showPage('calendar')">Calendar</button>`;
   h += `<button class="nav-tab" onclick="showPage('attendance')">Attendance</button>`;
   h += `<button class="nav-tab" onclick="showPage('blog')">Minutes</button>`;
-  if (isAdmin()) h += `<button class="nav-tab" onclick="showPage('admin')">Admin</button>`;
+  if (isAdmin()) {
+    const pendBadge = pendingMembers.length ? ` <span style="background:#e05555;color:white;border-radius:20px;font-size:10px;padding:1px 6px;font-weight:700;vertical-align:middle">${pendingMembers.length}</span>` : '';
+    h += `<button class="nav-tab" onclick="showPage('admin')">Admin${pendBadge}</button>`;
+  }
   h += `<button class="nav-tab" onclick="showPage('profile')">My profile</button>`;
   document.getElementById('nav-tabs').innerHTML = h;
 }
@@ -676,6 +689,18 @@ function showPage(name) {
 // ── REMINDER BANNER ──
 function renderReminder() {
   const slot = document.getElementById('reminder-slot');
+  // Show pending approvals alert to admins
+  if (isAdmin() && pendingMembers.length > 0) {
+    slot.innerHTML = `<div style="background:#FFF6DC;border:1px solid var(--k-gold-border);border-radius:8px;padding:11px 15px;margin-bottom:14px;display:flex;align-items:center;gap:12px">
+      <div style="width:32px;height:32px;border-radius:50%;background:var(--k-gold);display:flex;align-items:center;justify-content:center;color:white;font-size:16px;font-weight:700;flex-shrink:0">${pendingMembers.length}</div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600;color:#7a5200">${pendingMembers.length} member${pendingMembers.length>1?'s':''} waiting for approval</div>
+        <div style="font-size:11px;color:#a07030;margin-top:2px">${pendingMembers.map(p=>p.name||p.email).join(', ')}</div>
+      </div>
+      <button class="btn btn-sm btn-g" onclick="showPage('admin')">Review now</button>
+    </div>`;
+    return;
+  }
   if (!currentProfile || currentProfile.role !== 'member') { slot.innerHTML = ''; return; }
   const days = daysSince(currentProfile.joined_at);
   if (days > 30) { slot.innerHTML = ''; return; }
@@ -1014,14 +1039,21 @@ async function submitPost() {
 function loadEditForm() {
   const m = currentProfile; if (!m) return;
   document.getElementById('edit-name').value = m.name || '';
-  document.getElementById('edit-email').value = m.email || '';
+  document.getElementById('edit-email').value = m.email || currentUser?.email || '';
   document.getElementById('edit-phone').value = m.phone || '';
   document.getElementById('edit-industry').value = m.industry || '';
   document.getElementById('edit-website').value = m.website || '';
   document.getElementById('edit-pitch').value = m.pitch || '';
   document.getElementById('edit-desc').value = m.description || '';
   editTags = [...(m.tags || [])]; renderTagPv();
-  if (m.photo_url) document.getElementById('photo-preview').innerHTML = `<img src="${m.photo_url}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid var(--k-teal)"><div style="margin-top:4px;font-size:11px">Click to change photo</div>`;
+  // Pre-populate email from auth if not set in profile
+  if (!m.email && currentUser?.email) {
+    db.from('members').update({ email: currentUser.email }).eq('id', m.id);
+    currentProfile.email = currentUser.email;
+  }
+  if (m.photo_url) {
+    document.getElementById('photo-preview').innerHTML = `<img src="${m.photo_url}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid var(--k-teal)"><div style="margin-top:4px;font-size:11px">Click to change photo</div>`;
+  }
 }
 
 function addTag() {
@@ -1078,11 +1110,18 @@ async function saveProfile() {
 
 // ── ADMIN ──
 async function renderAdmin() {
+  // Refresh pending list every time admin page opens
+  if (isAdmin()) {
+    const { data: pend } = await db.from('members').select('*').eq('role','pending');
+    pendingMembers = pend || [];
+  }
   document.getElementById('st-members').textContent = members.length;
   document.getElementById('st-pending').textContent = pendingMembers.length;
   document.getElementById('st-chapters').textContent = chapters.length;
   document.getElementById('st-admins').textContent = members.filter(m => m.role && m.role !== 'member').length;
   document.getElementById('pending-count-badge').textContent = pendingMembers.length || '';
+  // Re-render nav to update badge count
+  renderNav();
 
   const bKey = 'banner_' + activeChapter;
   const b = window.appSettings?.[bKey];
@@ -1101,7 +1140,28 @@ async function renderAdmin() {
 
   document.getElementById('admin-list').innerHTML = members.filter(m => m.role && m.role !== 'member').map(m => `<div class="li"><div class="avatar ${m.role==='super'?'av-super':'av-admin'}" style="width:30px;height:30px;font-size:10px">${ini(m.name)}</div><div class="li-info"><div class="li-name">${m.name}</div><div class="li-meta">${m.email}</div></div><span class="rb-badge ${m.role==='super'?'rbb-super':'rbb-ch'}">${m.role==='super'?'Super admin':'Ch: '+chName(m.role.replace('chapter-',''))}</span>${isSuperAdmin()&&m.id!==currentProfile?.id?`<button class="btn btn-sm btn-d" onclick="revokeAdmin('${m.id}')">Revoke</button>`:''}</div>`).join('') || '<div class="empty">No admins.</div>';
 
-  document.getElementById('pending-list').innerHTML = pendingMembers.length ? pendingMembers.map(p => `<div class="li"><div class="avatar av-member" style="width:30px;height:30px;font-size:10px">${ini(p.name)}</div><div class="li-info"><div class="li-name">${p.name||'—'}</div><div class="li-meta">${p.industry||''} · ${p.email} · ${p.joined_at?.slice(0,10)||''}</div></div><div class="li-actions"><button class="btn btn-sm btn-ok" onclick="approveMember('${p.id}')">Approve</button><button class="btn btn-sm btn-d" onclick="rejectMember('${p.id}')">Reject</button></div></div>`).join('') : '<div class="empty">No pending requests.</div>';
+  document.getElementById('pending-list').innerHTML = pendingMembers.length
+    ? pendingMembers.map(p => `
+      <div class="li" style="flex-wrap:wrap;gap:8px;border-left:3px solid var(--k-gold);background:var(--k-gold-bg)">
+        <div class="avatar av-member" style="width:38px;height:38px;font-size:12px">${ini(p.name||'?')}</div>
+        <div class="li-info" style="min-width:180px">
+          <div class="li-name" style="font-size:13px">${p.name||'No name yet'}</div>
+          <div class="li-meta">${p.email}</div>
+          <div class="li-meta">${p.industry||'Industry not set'} · Applied ${p.joined_at?.slice(0,10)||'recently'}</div>
+          <div class="li-meta" style="margin-top:3px">
+            Chapters: 
+            ${chapters.map(c => `<label style="margin-right:8px;font-size:11px;cursor:pointer">
+              <input type="checkbox" id="pch-${p.id}-${c.id}" ${(p.chapters||[]).includes(c.id)?'checked':''} style="margin-right:3px">${c.name}
+            </label>`).join('')}
+          </div>
+        </div>
+        <div class="li-actions" style="flex-wrap:wrap">
+          <button class="btn btn-sm btn-ok" onclick="approveMemberWithChapters('${p.id}')">✓ Approve</button>
+          <button class="btn btn-sm" onclick="openPendingDetail('${p.id}')">View profile</button>
+          <button class="btn btn-sm btn-d" onclick="rejectMember('${p.id}')">✗ Reject</button>
+        </div>
+      </div>`).join('')
+    : '<div class="empty" style="background:var(--k-sage-bg);border-radius:8px;color:var(--k-sage)">No pending requests — all members approved.</div>';
 
   document.getElementById('all-member-list').innerHTML = members.map(m => { const cp = profileCompletion(m); const dj = daysSince(m.joined_at); return `<div class="li"><div class="avatar ${m.role==='super'?'av-super':m.role?.startsWith('chapter-')?'av-admin':'av-member'}" style="width:30px;height:30px;font-size:10px">${ini(m.name)}</div><div class="li-info"><div class="li-name">${m.name}</div><div class="li-meta">${m.industry||''} · ${(m.chapters||[]).map(chName).join(', ')} · ${cp.pct}% profile${dj<=30?' · Day '+dj:''}</div></div>${isSuperAdmin()?`<button class="btn btn-sm btn-d" onclick="removeMember('${m.id}')">Remove</button>`:''}</div>`; }).join('');
 }
@@ -1192,7 +1252,52 @@ async function approveMember(id) {
   await db.from('members').update({ role: 'member' }).eq('id', id);
   const m = pendingMembers.find(x => x.id === id);
   if (m) { m.role = 'member'; members.push(m); pendingMembers = pendingMembers.filter(x => x.id !== id); }
-  renderAdmin(); renderDir();
+  renderAdmin(); renderDir(); renderNav();
+}
+
+async function approveMemberWithChapters(id) {
+  // Read which chapter checkboxes are checked
+  const selectedChapters = chapters
+    .filter(c => document.getElementById(`pch-${id}-${c.id}`)?.checked)
+    .map(c => c.id);
+  const chapsToAssign = selectedChapters.length > 0 ? selectedChapters : chapters.map(c => c.id);
+  await db.from('members').update({ 
+    role: 'member',
+    chapters: chapsToAssign
+  }).eq('id', id);
+  const m = pendingMembers.find(x => x.id === id);
+  if (m) { 
+    m.role = 'member'; 
+    m.chapters = chapsToAssign;
+    members.push(m); 
+    pendingMembers = pendingMembers.filter(x => x.id !== id); 
+  }
+  renderAdmin(); renderDir(); renderNav();
+}
+
+
+function openPendingDetail(id) {
+  const p = pendingMembers.find(x => x.id === id); if (!p) return;
+  openModal((p.name||'Applicant') + ' — pending review', `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+      <div class="avatar av-member" style="width:44px;height:44px;font-size:14px">${ini(p.name||'?')}</div>
+      <div>
+        <div style="font-size:15px;font-weight:600;color:var(--k-text)">${p.name||'Name not provided'}</div>
+        <div style="font-size:12px;color:var(--k-teal)">${p.email}</div>
+      </div>
+    </div>
+    <p><strong>Industry:</strong> ${p.industry||'Not provided'}</p>
+    <p><strong>Phone:</strong> ${p.phone||'Not provided'}</p>
+    <p><strong>Website:</strong> ${p.website||'Not provided'}</p>
+    <p><strong>Pitch:</strong> ${p.pitch||'Not provided'}</p>
+    <p><strong>About:</strong> ${p.description||'Not provided'}</p>
+    <p><strong>Applied:</strong> ${p.joined_at?.slice(0,10)||'—'}</p>
+    ${(p.tags&&p.tags.length)?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:10px">${p.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>`:''}
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn btn-ok" style="flex:1" onclick="closeModal();approveMemberWithChapters('${p.id}')">✓ Approve</button>
+      <button class="btn btn-d" style="flex:1" onclick="closeModal();rejectMember('${p.id}')">✗ Reject</button>
+    </div>
+  `);
 }
 
 async function rejectMember(id) {
@@ -1232,6 +1337,20 @@ async function hardRefresh() {
   btn.textContent = '⟳';
   btn.disabled = false;
 }
+
+// ── RE-CHECK ROLE ON WINDOW FOCUS (catches stale sessions) ──
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible' && currentProfile) {
+    const { data } = await db.from('members').select('role, chapters').eq('id', currentProfile.id).single();
+    if (data && data.role !== currentProfile.role) {
+      currentProfile.role = data.role;
+      currentProfile.chapters = data.chapters;
+      updateBadge();
+      renderNav();
+      renderChBar();
+    }
+  }
+});
 
 // ── BOOT ──
 boot();
