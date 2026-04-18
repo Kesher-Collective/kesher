@@ -572,8 +572,18 @@ async function loadAppData() {
     chapters = chs || [];
     if (chapters.length && !activeChapter) activeChapter = chapters[0].id;
 
-    // Load current user's profile
-    const { data: prof } = await db.from('members').select('*').eq('auth_id', currentUser.id).single();
+    // Load current user's profile — try by auth_id first, then by email as fallback
+    let { data: prof } = await db.from('members').select('*').eq('auth_id', currentUser.id).single();
+    if (!prof && currentUser.email) {
+      // Fallback: find by email and fix auth_id
+      const { data: byEmail } = await db.from('members').select('*').eq('email', currentUser.email).single();
+      if (byEmail) {
+        await db.from('members').update({ auth_id: currentUser.id }).eq('id', byEmail.id);
+        byEmail.auth_id = currentUser.id;
+        prof = byEmail;
+        console.log('Fixed auth_id for', currentUser.email);
+      }
+    }
     currentProfile = prof;
 
     if (!currentProfile) {
@@ -638,9 +648,14 @@ db.auth.onAuthStateChange(async (event, session) => {
 function updateBadge() {
   const b = document.getElementById('user-badge');
   if (!currentProfile) return;
-  if (currentProfile.role === 'super') b.textContent = 'Super admin';
-  else if (currentProfile.role?.startsWith('chapter-')) b.textContent = 'Admin: ' + chName(currentProfile.role.replace('chapter-',''));
-  else b.textContent = currentProfile.name?.split(' ')[0] || 'Member';
+  const name = currentProfile.name?.split(' ')[0] || currentUser?.email?.split('@')[0] || 'Member';
+  if (currentProfile.role === 'super') {
+    b.innerHTML = `${name} <span style="background:var(--k-gold);color:white;border-radius:20px;font-size:9px;padding:1px 6px;font-weight:700;margin-left:4px">★ Super admin</span>`;
+  } else if (currentProfile.role?.startsWith('chapter-')) {
+    b.innerHTML = `${name} <span style="background:var(--k-teal);color:white;border-radius:20px;font-size:9px;padding:1px 6px;font-weight:700;margin-left:4px">Admin</span>`;
+  } else {
+    b.innerHTML = `${name} <span style="background:rgba(255,255,255,.2);color:white;border-radius:20px;font-size:9px;padding:1px 6px;margin-left:4px">Member</span>`;
+  }
 }
 
 function renderChBar() {
@@ -657,11 +672,13 @@ function setChapter(id) {
 }
 
 function renderNav() {
+  const role = currentProfile?.role || 'member';
+  const adminOrSuper = role === 'super' || role?.startsWith('chapter-');
   let h = `<button class="nav-tab" onclick="showPage('directory')">Directory</button>`;
   h += `<button class="nav-tab" onclick="showPage('calendar')">Calendar</button>`;
-  h += `<button class="nav-tab" onclick="showPage('attendance')">Attendance</button>`;
-  h += `<button class="nav-tab" onclick="showPage('blog')">Minutes</button>`;
-  if (isAdmin()) {
+  if (adminOrSuper) {
+    h += `<button class="nav-tab" onclick="showPage('attendance')">Attendance</button>`;
+    h += `<button class="nav-tab" onclick="showPage('blog')">Minutes</button>`;
     const pendBadge = pendingMembers.length ? ` <span style="background:#e05555;color:white;border-radius:20px;font-size:10px;padding:1px 6px;font-weight:700;vertical-align:middle">${pendingMembers.length}</span>` : '';
     h += `<button class="nav-tab" onclick="showPage('admin')">Admin${pendBadge}</button>`;
   }
@@ -670,13 +687,19 @@ function renderNav() {
 }
 
 function showPage(name) {
+  const adminOnly = ['attendance','blog','admin'];
+  const role = currentProfile?.role || 'member';
+  const adminOrSuper = role === 'super' || role?.startsWith('chapter-');
+  if (adminOnly.includes(name) && !adminOrSuper) {
+    name = 'directory'; // redirect non-admins away from admin pages
+  }
   ['directory','attendance','calendar','blog','profile','admin'].forEach(p => {
     document.getElementById('page-'+p)?.classList.toggle('hidden', p !== name);
   });
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => {
     const map = { directory:'directory', calendar:'calendar', attendance:'attendance', blog:'minutes', admin:'admin', profile:'my profile' };
-    if (map[name] && t.textContent.toLowerCase() === map[name]) t.classList.add('active');
+    if (map[name] && t.textContent.toLowerCase().startsWith(map[name])) t.classList.add('active');
   });
   if (name === 'directory') { renderDir(); renderBanner(); renderReminder(); }
   if (name === 'attendance') renderAttendance();
@@ -759,7 +782,34 @@ function renderDir() {
     const avc = isSuper ? 'av-super' : isChA ? 'av-admin' : 'av-member';
     let ab = isSuper ? `<span class="badge badge-super">★ Super admin</span>` : isChA ? `<span class="badge badge-admin">Admin: ${chName(m.role.replace('chapter-',''))}</span>` : '';
     const photoHtml = m.photo_url ? `<img src="${m.photo_url}" alt="${m.name}">` : ini(m.name);
-    return `<div class="member-card">${showInc?`<div class="incomplete-ribbon">Incomplete</div>`:''}<div class="card-top"><div class="avatar ${avc}">${photoHtml}${isA?`<div class="admin-dot ${isSuper?'dot-super':'dot-admin'}"></div>`:''}</div><div><div class="card-name">${m.name||'—'}</div><div class="card-sub">${m.industry||''}</div></div></div><div class="badge-row">${ab}<span class="badge badge-ind">${m.industry||''}</span>${(m.chapters||[]).filter(c=>c!==activeChapter).map(c=>`<span class="badge badge-ch">${chName(c)}</span>`).join('')}</div><div class="pitch">"${m.pitch||'No pitch yet'}"</div>${(m.tags&&m.tags.length)?`<div class="tags-row">${m.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>`:''}<div class="card-actions"><a class="clink" href="mailto:${m.email}">Email</a>${m.phone?`<a class="clink" href="tel:${m.phone}">Call</a>`:''}${m.website?`<a class="clink" href="${m.website}" target="_blank">Web</a>`:''}<a class="clink" onclick="openDetail('${m.id}')">More</a>${isA?`<a class="clink clink-admin" onclick="openDetail('${m.id}')">★ Contact admin</a>`:''}</div><div class="upd-tag">Updated ${m.updated_at?.slice(0,10)||''}</div></div>`;
+    const otherChapters = (m.chapters||[]).filter(c => c !== activeChapter);
+    // Build full info section - show everything provided
+    let infoRows = '';
+    if (m.phone) infoRows += `<div style="font-size:11px;color:var(--k-text2);margin-bottom:2px">📞 ${m.phone}</div>`;
+    if (m.website) infoRows += `<div style="font-size:11px;margin-bottom:2px"><a href="${m.website}" target="_blank" style="color:var(--k-teal);text-decoration:none">🌐 ${m.website.replace(/^https?:\/\//,'')}</a></div>`;
+    if (m.description) infoRows += `<div style="font-size:11px;color:var(--k-text2);line-height:1.5;margin-bottom:6px;padding:6px 8px;background:var(--k-warm);border-radius:5px">${m.description}</div>`;
+    return `<div class="member-card">${showInc?`<div class="incomplete-ribbon">Incomplete</div>`:''}
+      <div class="card-top">
+        <div class="avatar ${avc}" style="width:50px;height:50px;font-size:16px">${photoHtml}${isA?`<div class="admin-dot ${isSuper?'dot-super':'dot-admin'}"></div>`:''}</div>
+        <div style="flex:1">
+          <div class="card-name">${m.name||'—'}</div>
+          <div class="card-sub">${m.industry||''}</div>
+          ${otherChapters.length ? `<div style="margin-top:2px">${otherChapters.map(c=>`<span class="badge badge-ch">${chName(c)}</span>`).join(' ')}</div>` : ''}
+        </div>
+      </div>
+      <div class="badge-row">${ab}${m.industry?`<span class="badge badge-ind">${m.industry}</span>`:''}</div>
+      ${m.pitch ? `<div class="pitch">"${m.pitch}"</div>` : ''}
+      ${infoRows}
+      ${(m.tags&&m.tags.length)?`<div class="tags-row">${m.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>`:''}
+      <div class="card-actions" style="margin-top:8px">
+        <a class="clink" href="mailto:${m.email}">✉ Email</a>
+        ${m.phone?`<a class="clink" href="tel:${m.phone}">📞 Call</a>`:''}
+        ${m.website?`<a class="clink" href="${m.website}" target="_blank">🌐 Web</a>`:''}
+        <a class="clink" onclick="openDetail('${m.id}')">Full profile</a>
+        ${isA?`<a class="clink clink-admin" onclick="openDetail('${m.id}')">★ Contact admin</a>`:''}
+      </div>
+      <div class="upd-tag">Updated ${m.updated_at?.slice(0,10)||''}</div>
+    </div>`;
   }).join('');
 }
 
@@ -1038,19 +1088,21 @@ async function submitPost() {
 // ── PROFILE ──
 function loadEditForm() {
   const m = currentProfile; if (!m) return;
+  // Always use auth email as source of truth
+  const displayEmail = currentUser?.email || m.email || '';
+  // Sync email to DB if missing
+  if (!m.email && displayEmail) {
+    db.from('members').update({ email: displayEmail }).eq('id', m.id);
+    currentProfile.email = displayEmail;
+  }
   document.getElementById('edit-name').value = m.name || '';
-  document.getElementById('edit-email').value = m.email || currentUser?.email || '';
+  document.getElementById('edit-email').value = displayEmail;
   document.getElementById('edit-phone').value = m.phone || '';
   document.getElementById('edit-industry').value = m.industry || '';
   document.getElementById('edit-website').value = m.website || '';
   document.getElementById('edit-pitch').value = m.pitch || '';
   document.getElementById('edit-desc').value = m.description || '';
   editTags = [...(m.tags || [])]; renderTagPv();
-  // Pre-populate email from auth if not set in profile
-  if (!m.email && currentUser?.email) {
-    db.from('members').update({ email: currentUser.email }).eq('id', m.id);
-    currentProfile.email = currentUser.email;
-  }
   if (m.photo_url) {
     document.getElementById('photo-preview').innerHTML = `<img src="${m.photo_url}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid var(--k-teal)"><div style="margin-top:4px;font-size:11px">Click to change photo</div>`;
   }
