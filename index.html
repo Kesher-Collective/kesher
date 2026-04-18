@@ -537,8 +537,8 @@ async function signOut() { await db.auth.signOut(); location.reload(); }
 async function boot() {
   setLoading('Loading Kesher...');
   try {
-    // Add timeout to auth session check
-    const sessionResult = await withTimeout(db.auth.getSession(), 8000);
+    // Add timeout + retry to auth session check
+    const sessionResult = await withRetry(() => withTimeout(db.auth.getSession(), 12000), 3, 2000);
     const session = sessionResult.data?.session;
     if (!session) {
       setLoading();
@@ -563,11 +563,27 @@ let dataCache = null;
 let cacheTime = 0;
 const CACHE_TTL = 60000; // 1 minute
 
-function withTimeout(promise, ms = 8000) {
+function withTimeout(promise, ms = 15000) {
   return Promise.race([
     promise,
     new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out after ' + ms + 'ms')), ms))
   ]);
+}
+
+async function withRetry(fn, retries = 3, delayMs = 2000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch(err) {
+      if (i < retries - 1) {
+        setLoading('Connection slow — retrying (' + (i+2) + '/' + retries + ')...');
+        await new Promise(r => setTimeout(r, delayMs));
+        delayMs = delayMs * 1.5; // backoff
+      } else {
+        throw err;
+      }
+    }
+  }
 }
 
 async function refreshData(force = false) {
@@ -674,13 +690,18 @@ async function loadAppData() {
     // Show friendly retry screen instead of just going to auth
     hide('loading-overlay');
     const errDiv = document.createElement('div');
+    errDiv.id = 'conn-error';
     errDiv.style.cssText = 'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--k-page);z-index:999;flex-direction:column;gap:16px;padding:20px;text-align:center';
     errDiv.innerHTML = `
-      <div style="font-size:32px">⚠️</div>
-      <div style="font-size:16px;font-weight:600;color:var(--k-navy)">Connection problem</div>
-      <div style="font-size:13px;color:var(--k-text2);max-width:300px;line-height:1.6">Could not reach the database. This usually resolves in a few seconds.</div>
-      <div style="font-size:12px;color:var(--k-text3)">Error: ${err.message}</div>
-      <button onclick="location.reload()" style="padding:10px 24px;background:var(--k-teal);color:white;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:500">Try again</button>
+      <div style="font-size:40px">⚠️</div>
+      <div style="font-size:17px;font-weight:600;color:var(--k-navy)">Connection problem</div>
+      <div style="font-size:13px;color:var(--k-text2);max-width:320px;line-height:1.7">
+        Could not reach the database after 3 attempts.<br>
+        This is usually a temporary cold-start issue — clicking Try again almost always works.
+      </div>
+      <div style="font-size:11px;color:var(--k-text3);max-width:300px">${err.message}</div>
+      <button id="retry-btn" onclick="retryBoot()" style="padding:11px 32px;background:var(--k-teal);color:white;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600">Try again</button>
+      <div style="font-size:11px;color:var(--k-text3)">If this persists, wait 30 seconds and try once more.</div>
     `;
     document.body.appendChild(errDiv);
   }
@@ -1708,6 +1729,16 @@ async function hardRefresh() {
   showPage(cur);
   btn.textContent = '⟳';
   btn.disabled = false;
+}
+
+// ── RETRY BOOT ──
+async function retryBoot() {
+  const btn = document.getElementById('retry-btn');
+  if (btn) { btn.textContent = 'Connecting...'; btn.disabled = true; }
+  const errDiv = document.getElementById('conn-error');
+  if (errDiv) errDiv.remove();
+  dataCache = null; // clear cache to force fresh fetch
+  await boot();
 }
 
 // ── RE-CHECK ROLE ON WINDOW FOCUS (catches stale sessions) ──
